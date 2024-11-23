@@ -1,6 +1,13 @@
 # Telegram Webhook Bot
 
-A simple Telegram bot that forwards received messages to a specified webhook URL.
+A Telegram bot that forwards received messages to a specified webhook URL, built with Flask and deployable to Vercel.
+
+## Features
+
+- Forwards all text messages received by the bot to a specified webhook URL
+- Provides immediate feedback to users about message forwarding status
+- Includes message metadata in the forwarded payload
+- Deployable to Vercel as a serverless function
 
 ## Setup
 
@@ -20,23 +27,27 @@ cp .env.example .env
    - Telegram bot token
    - Webhook URL where messages should be forwarded
 
-## Running the Bot
+## Deployment to Vercel
 
-Simply run:
+1. Install Vercel CLI:
 ```bash
-python bot.py
+npm i -g vercel
 ```
 
-## Features
+2. Deploy to Vercel:
+```bash
+vercel
+```
 
-- Forwards all text messages received by the bot to a specified webhook URL
-- Includes message metadata in the forwarded payload:
-  - Message ID
-  - Chat ID
-  - Message text
-  - Timestamp
-  - Sender information (ID, username, first name, last name)
-- Logging of successful forwards and errors
+3. After deployment, set your environment variables in Vercel:
+   - Go to your project settings in Vercel dashboard
+   - Add `TELEGRAM_TOKEN` and `WEBHOOK_URL` environment variables
+
+4. Set up Telegram Webhook:
+   Replace `YOUR_VERCEL_URL` with your deployed URL:
+```bash
+curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook?url=YOUR_VERCEL_URL/api/webhook"
+```
 
 ## Webhook Payload Format
 
@@ -46,7 +57,7 @@ The webhook will receive POST requests with JSON payloads in this format:
     "message_id": 123,
     "chat_id": 456,
     "text": "Message content",
-    "date": "2023-01-01T12:00:00+00:00",
+    "date": 1234567890,
     "from_user": {
         "id": 789,
         "username": "sender_username",
@@ -55,3 +66,24 @@ The webhook will receive POST requests with JSON payloads in this format:
     }
 }
 ```
+
+## Development
+
+To run locally:
+```bash
+flask run
+```
+
+Then use ngrok or similar to create a tunnel to your local server for testing:
+```bash
+ngrok http 5000
+```
+
+## Error Handling
+
+The bot includes comprehensive error handling:
+- Validates message format
+- Handles network timeouts
+- Provides user-friendly error messages
+- Maintains detailed logs
+- Never crashes on malformed messages
