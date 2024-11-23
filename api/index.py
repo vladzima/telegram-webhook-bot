@@ -25,6 +25,7 @@ def send_telegram_message(chat_id, text):
     """Helper function to send Telegram messages."""
     telegram_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     try:
+        logger.info(f"Sending Telegram message to {chat_id}: {text}")
         response = requests.post(
             telegram_url,
             json={
@@ -35,6 +36,7 @@ def send_telegram_message(chat_id, text):
             timeout=10
         )
         response.raise_for_status()
+        logger.info(f"Successfully sent Telegram message: {response.status_code}")
         return True
     except Exception as e:
         logger.error(f"Failed to send Telegram message: {str(e)}")
@@ -43,13 +45,22 @@ def send_telegram_message(chat_id, text):
 @app.route('/')
 def home():
     """Health check endpoint."""
-    return {"status": "ok"}
+    logger.info("Health check endpoint called")
+    return {"status": "ok", "telegram_token_set": bool(TELEGRAM_TOKEN), "webhook_url_set": bool(WEBHOOK_URL)}
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
     """Handle incoming Telegram updates."""
+    logger.info("Received webhook call")
+    logger.info(f"Request headers: {dict(request.headers)}")
+    
     try:
+        # Log raw request data
+        raw_data = request.get_data().decode('utf-8')
+        logger.info(f"Raw request data: {raw_data}")
+        
         update = request.get_json()
+        logger.info(f"Parsed update data: {json.dumps(update, indent=2)}")
         
         # Validate update has message
         if not update or 'message' not in update:
@@ -123,6 +134,30 @@ def webhook():
     
     # Always return 200 to Telegram
     return Response(status=200)
+
+@app.route('/api/test', methods=['GET'])
+def test():
+    """Test endpoint to verify the bot can send messages."""
+    try:
+        if not TELEGRAM_TOKEN:
+            return {"error": "TELEGRAM_TOKEN not set"}, 400
+            
+        # Get chat_id from query parameter
+        chat_id = request.args.get('chat_id')
+        if not chat_id:
+            return {"error": "chat_id parameter required"}, 400
+            
+        # Try to send a test message
+        success = send_telegram_message(chat_id, "🔄 Test message from bot")
+        
+        return {
+            "success": success,
+            "message": "Test message sent" if success else "Failed to send test message"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in test endpoint: {str(e)}")
+        return {"error": str(e)}, 500
 
 if __name__ == '__main__':
     app.run()
